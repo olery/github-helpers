@@ -1,0 +1,5 @@
+= github-helpers
+
+Generate this with
+    github-helpers rdoc
+After you have described your command line interface
