@@ -1,0 +1,86 @@
+#!/usr/bin/env ruby
+require 'gli'
+begin # XXX: Remove this begin/rescue before distributing your app
+require 'github-helpers'
+rescue LoadError
+  STDERR.puts "In development, you need to use `bundle exec bin/github-helpers` to run your app"
+  STDERR.puts "At install-time, RubyGems will make sure lib, etc. are in the load path"
+  STDERR.puts "Feel free to remove this message from bin/github-helpers now"
+  exit 64
+end
+
+include GLI::App
+
+program_desc 'Add and Remove github collaborators to collections of repositories.'
+
+version GithubHelpers::VERSION
+
+#desc 'Describe some switch here'
+#switch [:s,:switch]
+
+desc 'Github Username'
+flag [:u,:username]
+
+desc 'Github Password'
+flag [:p,:password]
+
+
+pre do |global,command,options,args|
+  # Pre logic here
+  # Return true to proceed; false to abort and not call the
+  # chosen command
+  # Use skips_pre before a command to skip this block
+  # on that command only
+
+  username = global[:username] || ask("Github Username:")
+  password = global[:password] || ask("Github Password: (it's safe, characters won't end up on your screen)"){|q| q.echo = false}
+  $github_helper = GithubHelpers::Collaborators.new(username, password)
+  true
+end
+
+desc 'Add collaborators to repositories'
+command :add do |c|
+  c.desc 'List of repository names, when no list is given, it defaults to all repositories of the authenticated Github user.'
+  c.arg_name 'repositories', [:multiple, :optional]
+  c.flag [:r,:repositories]
+
+  c.desc 'List of github usernames (handles).'
+  c.arg_name 'repositories', :multiple
+  c.flag [:h,:handles]
+
+  c.action do |global, options, args|
+    repos = $github_helper.repos(options[:repositories])
+    $github_helper.add_collaborators(args,repos)
+  end
+end
+
+desc 'Remove collaborators to repositories'
+command :remove do |c|
+  c.desc 'List of repository names, when no list is given, it defaults to all repositories of the authenticated Github user.'
+  c.arg_name 'repositories', [:multiple, :optional]
+  c.flag [:r,:repositories]
+
+  c.desc 'List of github usernames (handles).'
+  c.arg_name 'repositories', :multiple
+  c.flag [:h,:handles]
+
+  c.action do |global, options, args|
+    repos = $github_helper.repos(options[:repositories])
+    handles = options[:handles]
+    $github_helper.remove_collaborators(handles,repos)
+  end
+end
+
+post do |global,command,options,args|
+  # Post logic here
+  # Use skips_post before a command to skip this
+  # block on that command only
+end
+
+on_error do |exception|
+  # Error logic here
+  # return false to skip default error handling
+  true
+end
+
+exit run(ARGV)
